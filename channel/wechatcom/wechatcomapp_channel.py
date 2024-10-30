@@ -131,18 +131,29 @@ class WechatComAppChannel(ChatChannel):
             self.client.message.send_image(self.agent_id, receiver, response["media_id"])
             logger.info("[wechatcom] sendImage, receiver={}".format(receiver))
 
+from urllib.parse import unquote
+def decode_param(param):
+    # 使用 UTF-8 解码参数
+    try:
+        return unquote(param, encoding='utf-8')
+    except UnicodeDecodeError:
+        # 如果解码失败，处理异常或者记录错误
+        logger.error("Failed to decode parameter: {}".format(param))
+        raise
 
 class Query:
     def GET(self):
         channel = WechatComAppChannel()
         params = web.input()
         logger.info("[wechatcom] receive params: {}".format(params))
+
         try:
-            signature = params.msg_signature
-            timestamp = params.timestamp
-            nonce = params.nonce
-            echostr = params.echostr
-            echostr = channel.crypto.check_signature(signature, timestamp, nonce, echostr)
+            signature =decode_param( params.msg_signature)
+            timestamp = decode_param( params.timestamp)
+            nonce = decode_param( params.nonce)
+            echostr = decode_param( params.echostr)
+            print(signature,timestamp,nonce,echostr)
+            echostr =  channel.crypto.check_signature(signature, timestamp, nonce, echostr)
         except InvalidSignatureException:
             raise web.Forbidden()
         return echostr
