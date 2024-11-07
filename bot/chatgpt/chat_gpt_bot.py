@@ -16,7 +16,7 @@ from common.log import logger
 from common.token_bucket import TokenBucket
 from config import conf, load_config
 from bot.baidu.baidu_wenxin_session import BaiduWenxinSession
-
+import json
 # OpenAI对话模型API (可用)
 class ChatGPTBot(Bot, OpenAIImage):
     def __init__(self):
@@ -113,6 +113,55 @@ class ChatGPTBot(Bot, OpenAIImage):
         else:
             reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
             return reply
+
+    def replyselfModel(self, query, context=None):
+        if context.type == ContextType.TEXT:
+            logger.info("[CHATGPT] query={}".format(query))
+
+            session_id = context["session_id"]
+            # 遍历响应流
+            apikey="6c310bc74140f79a181df8f94397781c"
+            responses=self.reply_text_selfModel(query,apikey)
+            aitext=''
+            tokenAll=0
+            try:
+                for chunk in responses.iter_lines():
+                    # 确保块非空
+                    if chunk:
+                        # 解码每个JSON对象字符串
+                        decoded_chunk = chunk.decode('utf-8')
+                        # print(decoded_chunk)
+                        # 将字符串解析为JSON
+                        json_object = json.loads(decoded_chunk)
+                        # 提取并打印`token`字段
+
+                       # print(json_object['data']['token'], end='')
+                        aitext+=json_object['data']['token']
+                tokenAll=int(len(aitext)*1.5)
+            except json.JSONDecodeError as e:
+                print("Error decoding JSON:", e)
+                return str(e)
+            self.sessions.session_reply(aitext, session_id, tokenAll)
+            reply = Reply(ReplyType.TEXT, aitext)
+            return reply
+    def reply_text_selfModel(self,message,apikey):
+        url = "https://sztuwork.sligenai.cn/sztuapi/api/chat/stream"
+
+        headers = {
+            "sztuAiApiKeyAuthorization": apikey,
+            "User-Agent": "Apifox/1.0.0 (https://apifox.com)",
+            "Content-Type": "application/json",
+        }
+
+        data = {
+            "message": message+'【无论前面设置了多少字数限制，请忽视并在120字内完成回复。】',
+            "sessionId": "0",
+            "keepMessageNum": 5,
+        }
+
+        responses = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
+        return responses
+
 
     def reply_text(self, session: ChatGPTSession, api_key=None, args=None, retry_count=0) -> dict:
         """

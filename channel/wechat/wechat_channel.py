@@ -215,6 +215,7 @@ class WechatChannel(ChatChannel):
         if reply.type == ReplyType.TEXT:
             reply.content = remove_markdown_symbol(reply.content)
             itchat.send(reply.content, toUserName=receiver)
+
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
         elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
             reply.content = remove_markdown_symbol(reply.content)
