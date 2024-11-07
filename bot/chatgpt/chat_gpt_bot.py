@@ -144,6 +144,17 @@ class ChatGPTBot(Bot, OpenAIImage):
             self.sessions.session_reply(aitext, session_id, tokenAll)
             reply = Reply(ReplyType.TEXT, aitext)
             return reply
+        elif context.type == ContextType.IMAGE_CREATE:
+            ok, retstring = self.create_img(query, 0)
+            reply = None
+            if ok:
+                reply = Reply(ReplyType.IMAGE_URL, retstring)
+            else:
+                reply = Reply(ReplyType.ERROR, retstring)
+            return reply
+        else:
+            reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
+            return reply
     def reply_text_selfModel(self,message,apikey):
         url = "https://sztuwork.sligenai.cn/sztuapi/api/chat/stream"
 
