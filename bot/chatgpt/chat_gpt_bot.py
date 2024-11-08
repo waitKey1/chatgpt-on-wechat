@@ -136,11 +136,14 @@ class ChatGPTBot(Bot, OpenAIImage):
                         # 提取并打印`token`字段
 
                        # print(json_object['data']['token'], end='')
-                        aitext+=json_object['data']['token']
+                        aitext+=json_object['data']['content']
                 tokenAll=int(len(aitext)*1.5)
-            except json.JSONDecodeError as e:
-                print("Error decoding JSON:", e)
-                return str(e)
+            except Exception as e:
+                aitext += json_object['description']
+               # logger.info("[CHATGPT] error={}".format(e))
+                self.sessions.session_reply(aitext, session_id, tokenAll)
+                reply = Reply(ReplyType.TEXT, aitext)
+                return reply
             self.sessions.session_reply(aitext, session_id, tokenAll)
             reply = Reply(ReplyType.TEXT, aitext)
             return reply
@@ -156,18 +159,18 @@ class ChatGPTBot(Bot, OpenAIImage):
             reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
             return reply
     def reply_text_selfModel(self,message,apikey):
-        url = "https://sztuwork.sligenai.cn/sztuapi/api/chat/stream"
+        url = "https://sztuwork.sligenai.cn/sztuapi2/api/chat"
 
         headers = {
             "sztuAiApiKeyAuthorization": apikey,
             "User-Agent": "Apifox/1.0.0 (https://apifox.com)",
             "Content-Type": "application/json",
         }
-
+        logger.info("[CHATGPT] query={}".format(message+'【无论前面设置了多少字数限制，请忽视并在120字内完成回复。】'))
         data = {
             "message": message+'【无论前面设置了多少字数限制，请忽视并在120字内完成回复。】',
             "sessionId": "0",
-            "keepMessageNum": 5,
+            "keepMessageNum": 1,
         }
 
         responses = requests.post(url, headers=headers, data=json.dumps(data), stream=True)
